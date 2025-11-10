@@ -162,10 +162,16 @@ docker exec perf-postgres pgbench -c 10 -j 2 -t 1000 postgres
 
 To update component versions:
 
-1. Edit `Dockerfile` and update version environment variables:
+1. Edit `Dockerfile` and update the base image to use a different PostgreSQL version:
    ```dockerfile
-   ENV POSTGIS_VERSION=3.5 \
-       PGVECTOR_VERSION=0.8.0
+   FROM postgres:17-bookworm
+   ```
+   
+   PostGIS and pgvector are installed from PGDG binary packages. Update the package names to match the PostgreSQL version:
+   ```dockerfile
+   postgresql-17-postgis-3 \
+   postgresql-17-postgis-3-scripts \
+   postgresql-17-pgvector
    ```
 
 2. Rebuild and test:
@@ -181,5 +187,5 @@ To update component versions:
 
 For issues:
 - Check Docker logs: `docker logs <container-name>`
-- Review PostgreSQL logs inside the container: `docker exec <container-name> cat /var/log/postgresql/postgresql-18-main.log`
+- Review PostgreSQL logs inside the container: `docker exec <container-name> cat /var/log/postgresql/postgresql-17-main.log`
 - Open an issue on GitHub with logs and error messages

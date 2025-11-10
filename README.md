@@ -1,12 +1,12 @@
 # Railway PostgreSQL + PostGIS + pgvector
 
-A Docker image template for [Railway.com](https://railway.app) that includes PostgreSQL 18 with PostGIS and pgvector extensions pre-installed and configured.
+A Docker image template for [Railway.com](https://railway.app) that includes PostgreSQL 17 with PostGIS and pgvector extensions pre-installed and configured.
 
 ## Features
 
-- **PostgreSQL 18**: Latest stable version of PostgreSQL
-- **PostGIS 3.4**: Spatial and geographic objects for PostgreSQL
-- **pgvector 0.7.4**: Vector similarity search for AI/ML applications
+- **PostgreSQL 17**: Stable version of PostgreSQL
+- **PostGIS 3**: Spatial and geographic objects for PostgreSQL
+- **pgvector**: Vector similarity search for AI/ML applications
 - **Automatic Updates**: CI/CD pipeline to rebuild when new versions are available
 - **Railway.com Ready**: Pre-configured for deployment on Railway
 - **Tested**: Comprehensive test suite to ensure all components work correctly
@@ -191,15 +191,13 @@ To enable automatic Docker Hub publishing, add these secrets to your GitHub repo
 
 ### Updating Versions
 
-To update component versions, edit the `Dockerfile`:
+The image uses binary packages from the PostgreSQL Global Development Group (PGDG) repository. To update to a different PostgreSQL version, change the base image in the `Dockerfile`:
 
 ```dockerfile
-ENV POSTGRES_DB=railway \
-    POSTGRES_USER=postgres \
-    POSTGRES_PASSWORD=postgres \
-    POSTGIS_VERSION=3.4 \
-    PGVECTOR_VERSION=0.7.4
+FROM postgres:17-bookworm
 ```
+
+PostGIS and pgvector are installed from PGDG binary packages that match the PostgreSQL version. To use newer versions of these extensions, they must be available in the PGDG repository for the PostgreSQL version you're using.
 
 Then rebuild and test:
 

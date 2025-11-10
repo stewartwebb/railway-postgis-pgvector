@@ -68,29 +68,14 @@ check_file ".github/workflows/check-updates.yml"
 
 echo ""
 echo "Checking Dockerfile content..."
-if grep -q "FROM postgres:18" Dockerfile; then
-    echo -e "${GREEN}✓${NC} Uses PostgreSQL 18"
+if grep -q "FROM postgres:17" Dockerfile; then
+    echo -e "${GREEN}✓${NC} Uses PostgreSQL 17"
     PASSED=$((PASSED + 1))
 else
-    echo -e "${RED}✗${NC} Does not use PostgreSQL 18"
+    echo -e "${RED}✗${NC} Does not use PostgreSQL 17"
     FAILED=$((FAILED + 1))
 fi
 
-if grep -q "PGVECTOR_VERSION" Dockerfile; then
-    echo -e "${GREEN}✓${NC} pgvector version defined"
-    PASSED=$((PASSED + 1))
-else
-    echo -e "${RED}✗${NC} pgvector version not defined"
-    FAILED=$((FAILED + 1))
-fi
-
-if grep -q "POSTGIS_VERSION" Dockerfile; then
-    echo -e "${GREEN}✓${NC} PostGIS version defined"
-    PASSED=$((PASSED + 1))
-else
-    echo -e "${RED}✗${NC} PostGIS version not defined"
-    FAILED=$((FAILED + 1))
-fi
 
 echo ""
 echo "Checking test script..."
