@@ -1,0 +1,85 @@
+name: Check for Updates
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-versions:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PostgreSQL version
+        id: check-postgres
+        run: |
+          # Get latest PostgreSQL 18 version
+          LATEST=$(curl -s https://www.postgresql.org/versions/json/ | jq -r '.[] | select(.major == 18) | .latestMinor' | head -1)
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest PostgreSQL 18 version: $LATEST"
+
+      - name: Check PostGIS version
+        id: check-postgis
+        run: |
+          # Get latest PostGIS 3.x version from GitHub
+          LATEST=$(curl -s https://api.github.com/repos/postgis/postgis/releases | jq -r '.[].tag_name' | grep '^3\.' | head -1)
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "Latest PostGIS 3.x version: $LATEST"
+
+      - name: Check pgvector version
+        id: check-pgvector
+        run: |
+          # Get latest pgvector version from GitHub
+          LATEST=$(curl -s https://api.github.com/repos/pgvector/pgvector/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          CURRENT=$(grep 'PGVECTOR_VERSION' Dockerfile | cut -d'=' -f2 | tr -d ' ')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Latest pgvector version: $LATEST"
+          echo "Current pgvector version: $CURRENT"
+
+      - name: Create issue for updates
+        if: steps.check-pgvector.outputs.latest != steps.check-pgvector.outputs.current
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'New version available: pgvector ' + '${{ steps.check-pgvector.outputs.latest }}';
+            const body = `A new version of pgvector is available.
+            
+            Current version: ${{ steps.check-pgvector.outputs.current }}
+            Latest version: ${{ steps.check-pgvector.outputs.latest }}
+            
+            Please update the \`PGVECTOR_VERSION\` in the Dockerfile and test the build.
+            
+            Latest PostGIS version: ${{ steps.check-postgis.outputs.latest }}
+            Latest PostgreSQL version: ${{ steps.check-postgres.outputs.latest }}`;
+            
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['version-update']
+            });
+            
+            const existingIssue = issues.data.find(issue => issue.title === title);
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['version-update', 'automated']
+              });
+            }
+
+      - name: Summary
+        run: |
+          echo "## Version Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- PostgreSQL: ${{ steps.check-postgres.outputs.latest }}" >> $GITHUB_STEP_SUMMARY
+          echo "- PostGIS: ${{ steps.check-postgis.outputs.latest }}" >> $GITHUB_STEP_SUMMARY
+          echo "- pgvector: ${{ steps.check-pgvector.outputs.latest }} (current: ${{ steps.check-pgvector.outputs.current }})" >> $GITHUB_STEP_SUMMARY

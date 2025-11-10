@@ -7,14 +7,24 @@ ENV POSTGRES_DB=railway \
     POSTGIS_VERSION=3.4 \
     PGVECTOR_VERSION=0.7.4
 
-# Install dependencies
+# Install dependencies and PostGIS
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-18-postgis-3 \
-    postgresql-18-postgis-3-scripts \
     build-essential \
     git \
-    postgresql-server-dev-18 \
     ca-certificates \
+    wget \
+    gnupg2 \
+    lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add PostgreSQL repository and install PostGIS
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    postgresql-18-postgis-3 \
+    postgresql-18-postgis-3-scripts \
+    postgresql-server-dev-18 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install pgvector from source
