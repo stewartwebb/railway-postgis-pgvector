@@ -14,7 +14,7 @@ on:
 
 env:
   DOCKER_IMAGE: stewartwebb/railway-postgis-pgvector
-  POSTGRES_VERSION: "18"
+  POSTGRES_VERSION: "17"
 
 jobs:
   build:

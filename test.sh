@@ -55,10 +55,10 @@ fi
 echo ""
 echo "Test 2: PostgreSQL Version"
 VERSION=$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -t -c "SELECT version();" | grep -oP "PostgreSQL \d+" || echo "")
-if [[ "$VERSION" == *"PostgreSQL 18"* ]]; then
-    test_pass "PostgreSQL 18 detected: $VERSION"
+if [[ "$VERSION" == *"PostgreSQL 17"* ]]; then
+    test_pass "PostgreSQL 17 detected: $VERSION"
 else
-    test_fail "PostgreSQL 18 not detected. Found: $VERSION"
+    test_fail "PostgreSQL 17 not detected. Found: $VERSION"
 fi
 
 # Test 3: PostGIS Extension
