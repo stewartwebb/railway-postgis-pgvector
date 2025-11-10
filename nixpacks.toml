@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["postgresql_18"]
+
+[phases.build]
+cmds = ["echo 'Using Dockerfile for build'"]
+
+[start]
+cmd = "postgres"

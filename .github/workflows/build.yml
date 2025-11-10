@@ -1,0 +1,105 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Run weekly to check for new versions
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: stewartwebb/railway-postgis-pgvector
+  POSTGRES_VERSION: "18"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ env.POSTGRES_VERSION }}
+            type=sha,prefix=${{ env.POSTGRES_VERSION }}-
+            type=ref,event=pr
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker run -d --name test-postgres \
+            -e POSTGRES_PASSWORD=testpassword \
+            -p 5432:5432 \
+            ${{ env.DOCKER_IMAGE }}:latest
+          
+          # Wait for PostgreSQL to be ready
+          echo "Waiting for PostgreSQL to start..."
+          for i in {1..30}; do
+            if docker exec test-postgres pg_isready -U postgres; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+          
+          # Run tests
+          docker exec test-postgres psql -U postgres -d railway -c "SELECT version();"
+          docker exec test-postgres psql -U postgres -d railway -c "SELECT PostGIS_version();"
+          docker exec test-postgres psql -U postgres -d railway -c "SELECT * FROM pg_available_extensions WHERE name = 'vector';"
+          
+          # Clean up
+          docker stop test-postgres
+          docker rm test-postgres
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **PostgreSQL Version**: ${{ env.POSTGRES_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image**: ${{ env.DOCKER_IMAGE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
