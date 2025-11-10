@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: stewartwebb/railway-postgis-pgvector
+  DOCKER_IMAGE: stewartwebb0/railway-postgis-pgvector
   POSTGRES_VERSION: "17"
 
 jobs:
